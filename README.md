@@ -1,6 +1,6 @@
-# 🚀 Welcome to your new awesome project!
+# 🚀 Welcome to my new awesome project!
 
-This project has been created using **webpack-cli**, you can now run
+I hope you guys enjoy it! :)
 
 ```
 npm run build
