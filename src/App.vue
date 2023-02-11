@@ -1,37 +1,75 @@
 <template>
-  <div>
-    <v-row class="mx-0 d-flex align-center">
-      <template v-for="(evolution_detail, index) in evolutions()">
-        <v-col
-          cols="3"
-          :key="`evolution-${index}`"
-          v-if="typeof evolution_detail == 'object'"
-        >
-          <PokemonCard :pokemon="evolution_detail" flat />
-        </v-col>
-        <v-col cols="1" :key="`evolution-${index}`" v-else>
-          <h3 class="text-center">L {{ evolution_detail }}</h3>
-        </v-col>
-      </template>
-    </v-row>
-  </div>
+  <v-app>
+    <v-container>
+      <v-container>
+        <v-row>
+          <v-container>
+            <v-img
+              :src="require('../src/assets/pokedex.png')"
+              class="my-3"
+              contain
+              height="200"
+            />
+            <h1 class="text-center white--text mb-2" style="font-size: 5rem">
+              Pokedex
+            </h1>
+            <h1 class="text-center white--text mb-8">
+              Created by
+              <a class="red--text" href="https://neps.academy">Neps Academy</a>
+            </h1>
+          </v-container>
+        </v-row>
+
+        <v-text-field
+          v-model="search"
+          label="Pesquisar"
+          placeholder="Charmander"
+          solo
+        ></v-text-field>
+
+        <v-row>
+          <v-col
+            cols="6"
+            md="2"
+            v-for="pokemon in filtered_pokemons"
+            :key="pokemon.name"
+          >
+            <PokemonCard :pokemon="pokemon" @clicked="show_pokemon" />
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-container>
+
+    <PokemonInfoDialog
+      :show.sync="show_dialog"
+      :selected_pokemon="selected_pokemon"
+    />
+  </v-app>
 </template>
 
 <script>
 import axios from "axios";
-import PokemonCard from "./PokemonCard.vue";
+
+import PokemonCard from "./components/PokemonCard.vue";
+import PokemonInfoDialog from "./components/PokemonInfoDialog.vue";
+
 export default {
+  name: "App",
+
   components: {
     PokemonCard,
+    PokemonInfoDialog,
   },
+
   data() {
     return {
-      evolution: null,
+      pokemons: [],
+      search: "",
+      show_dialog: false,
+      selected_pokemon: null,
     };
   },
-  props: {
-    pokemon: Object,
-  },
+
   mounted() {
     axios
       .get("https://pokeapi.co/api/v2/pokemon?limit=493")
@@ -40,46 +78,47 @@ export default {
       });
   },
   methods: {
-    fetch_evolution() {
-      axios
-        .get(`https://pokeapi.co/api/v2/pokemon-species/${this.pokemon.id}`)
-        .then((response) => {
-          axios.get(response.data.evolution_chain.url).then((response) => {
-            this.evolution = response.data.chain;
-          });
-        });
+    show_pokemon(id) {
+      axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`).then((response) => {
+        this.selected_pokemon = response.data;
+        this.show_dialog = !this.show_dialog;
+      });
     },
-    evolutions() {
-      let chain = [];
-      let evolution = this.evolution;
-      if (evolution.species) {
-        chain.push(evolution.species);
-      }
-      while (evolution.species) {
-        if (evolution.evolves_to.length > 0) {
-          evolution = evolution.evolves_to[0];
-          if (
-            evolution.evolution_details.length > 0 &&
-            evolution.evolution_details[0].min_level
-          ) {
-            chain.push(evolution.evolution_details[0].min_level);
-          }
-          if (evolution.species) {
-            chain.push(evolution.species);
-          }
-        } else {
-          break;
+    get_move_level(move) {
+      for (let version of move.version_group_details) {
+        if (
+          version.version_group.name == "sword-shield" &&
+          version.move_learn_method.name == "level-up"
+        ) {
+          return version.level_learned_at;
         }
       }
-      return chain;
+      return 0;
     },
   },
-  watch: {
-    pokemon() {
-      this.fetch_evolution();
+  computed: {
+    filtered_pokemons() {
+      return this.pokemons.filter((item) => {
+        return item.name.includes(this.search);
+      });
     },
   },
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style>
+#app {
+  background: linear-gradient(
+      to bottom right,
+      rgba(10, 10, 10, 1),
+      rgba(12, 39, 63, 1)
+    )
+    no-repeat center center fixed !important;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover !important;
+  background-position: center;
+  min-height: 100vh;
+}
+</style>
