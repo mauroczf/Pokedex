@@ -1,114 +1,81 @@
 <template>
-  <v-app>
-    <v-container>
-      <v-container>
-        <v-row>
-          <v-container>
-            <v-img
-              :src="require('../src/assets/pokedex.png')"
-              class="my-3"
-              contain
-              height="200"
-            />
-            <h1 class="text-center white--text mb-8" style="font-size: 5rem">
-             Pokedex
-            </h1>
-          </v-container>
-        </v-row>
-
-        <v-text-field
-          v-model="search"
-          label="Pesquisar"
-          placeholder="Charmander"
-          solo
-        ></v-text-field>
-
-        <v-row>
-          <v-col
-            cols="2"
-            v-for="pokemon in filtered_pokemons"
-            :key="pokemon.name"
-          >
-            <PokemonCard :pokemon="pokemon" @clicked="show_pokemon" />
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-container>
-
-    <PokemonInfoDialog
-      :show.sync="show_dialog"
-      :selected_pokemon="selected_pokemon"
-    />
-  </v-app>
+  <div>
+    <v-row class="mx-0 d-flex align-center">
+      <template v-for="(evolution_detail, index) in evolutions()">
+        <v-col
+          cols="3"
+          :key="`evolution-${index}`"
+          v-if="typeof evolution_detail == 'object'"
+        >
+          <PokemonCard :pokemon="evolution_detail" flat />
+        </v-col>
+        <v-col cols="1" :key="`evolution-${index}`" v-else>
+          <h3 class="text-center">L {{ evolution_detail }}</h3>
+        </v-col>
+      </template>
+    </v-row>
+  </div>
 </template>
 
 <script>
 import axios from "axios";
-import PokemonCard from "./components/PokemonCard.vue";
-import PokemonInfoDialog from "./components/PokemonInfoDialog.vue";
+import PokemonCard from "./PokemonCard.vue";
 export default {
-  name: "App",
   components: {
     PokemonCard,
-    PokemonInfoDialog,
   },
   data() {
     return {
-      pokemons: [],
-      search: "",
-      show_dialog: false,
-      selected_pokemon: null,
+      evolution: null,
     };
   },
+  props: {
+    pokemon: Object,
+  },
   mounted() {
-    axios
-      .get("https://pokeapi.co/api/v2/pokemon?limit=151")
-      .then((response) => {
-        this.pokemons = response.data.results;
-      });
+    this.fetch_evolution();
   },
   methods: {
-    show_pokemon(id) {
-      axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`).then((response) => {
-        this.selected_pokemon = response.data;
-        this.show_dialog = !this.show_dialog;
-      });
+    fetch_evolution() {
+      axios
+        .get(`https://pokeapi.co/api/v2/pokemon-species/${this.pokemon.id}`)
+        .then((response) => {
+          axios.get(response.data.evolution_chain.url).then((response) => {
+            this.evolution = response.data.chain;
+          });
+        });
     },
-    get_move_level(move) {
-      for (let version of move.version_group_details) {
-        if (
-          version.version_group.name == "sword-shield" &&
-          version.move_learn_method.name == "level-up"
-        ) {
-          return version.level_learned_at;
+    evolutions() {
+      let chain = [];
+      let evolution = this.evolution;
+      if (evolution.species) {
+        chain.push(evolution.species);
+      }
+      while (evolution.species) {
+        if (evolution.evolves_to.length > 0) {
+          evolution = evolution.evolves_to[0];
+          if (
+            evolution.evolution_details.length > 0 &&
+            evolution.evolution_details[0].min_level
+          ) {
+            chain.push(evolution.evolution_details[0].min_level);
+          }
+          if (evolution.species) {
+            chain.push(evolution.species);
+          }
+        } else {
+          break;
         }
       }
-      return 0;
+      return chain;
     },
   },
-  computed: {
-    filtered_pokemons() {
-      return this.pokemons.filter((item) => {
-        return item.name.includes(this.search);
-      });
+  watch: {
+    pokemon() {
+      this.fetch_evolution();
     },
   },
 };
 </script>
 
-<style>
-#app {
-  background: linear-gradient(
-      to bottom right,
-      rgba(10, 10, 10, 1),
-      rgba(12, 39, 63, 1)
-    )
-    no-repeat center center fixed !important;
-  -webkit-background-size: cover;
-  -moz-background-size: cover;
-  -o-background-size: cover;
-  background-size: cover !important;
-  background-position: center;
-  min-height: 100vh;
-}
-</style>
+<style lang="scss" scoped></style>
