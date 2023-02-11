@@ -33,7 +33,11 @@ export default {
     pokemon: Object,
   },
   mounted() {
-    this.fetch_evolution();
+    axios
+      .get("https://pokeapi.co/api/v2/pokemon?limit=493")
+      .then((response) => {
+        this.pokemons = response.data.results;
+      });
   },
   methods: {
     fetch_evolution() {
