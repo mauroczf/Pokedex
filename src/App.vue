@@ -13,10 +13,6 @@
             <h1 class="text-center white--text mb-2" style="font-size: 5rem">
               Pokedex
             </h1>
-            <h1 class="text-center white--text mb-8">
-              Created by
-              <a class="red--text" href="https://neps.academy">Neps Academy</a>
-            </h1>
           </v-container>
         </v-row>
 
